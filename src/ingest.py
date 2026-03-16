@@ -1,7 +1,9 @@
 import sys
 import os
 sys.path.insert(0, ".")          # lets Python find src/config.py
-from docling.document_converter import DocumentConverter
+from docling.document_converter import DocumentConverter, PdfFormatOption
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.datamodel.base_models import InputFormat
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_qdrant import QdrantVectorStore
 from langchain_community.embeddings import FastEmbedEmbeddings
@@ -11,29 +13,30 @@ from langchain_core.documents import Document
 import config
 
 def load_document(file_path: str) -> list[Document]:
-    """
-    Use Docling to parse the file.
-    WHY Docling over PyPDFLoader?
-    - Handles tables, multi-column layouts, headers/footers
-    - Understands document STRUCTURE, not just raw text
-    - Works on PDFs that PyPDF fails on (scanned, complex layouts)
-    """
-    print(f"Parsing: {file_path}")
-    converter = DocumentConverter()
-    result = converter.convert(file_path)
+    print(f"\n📄 Parsing: {file_path}")
 
-    # Docling gives us a rich document object.
-    # .export_to_markdown() converts it to clean structured text.
-    # This preserves headings, lists, tables better than raw text.
+    # Disable OCR — our PDF has real selectable text, no OCR needed.
+    # This skips the OCR engine initialisation that was causing the error.
+    pipeline_options = PdfPipelineOptions()
+    pipeline_options.do_ocr = False
+    pipeline_options.do_table_structure = False
+
+    converter = DocumentConverter(
+        format_options={
+            InputFormat.PDF: PdfFormatOption(
+                pipeline_options=pipeline_options
+            )
+        }
+    )
+
+    result = converter.convert(file_path)
     text = result.document.export_to_markdown()
 
-    # Wrap in LangChain Document format (page_content + metadata)
-    # Metadata tags where this came from — shown to user with answers
     doc = Document(
         page_content=text,
         metadata={"source": os.path.basename(file_path)}
     )
-    print(f"Extracted {len(text)} characters")
+    print(f"   Extracted {len(text)} characters")
     return [doc]
 
 def split_into_chunks(docs: list[Document]) -> list[Document]:
@@ -47,11 +50,7 @@ def split_into_chunks(docs: list[Document]) -> list[Document]:
     splitter = RecursiveCharacterTextSplitter(
         chunk_size=config.CHUNK_SIZE,
         chunk_overlap=config.CHUNK_OVERLAP,
-        # These separators are tried in order — paragraph break first
-        separators=["
-
-", "
-", ". ", " ", ""]
+        separators=["\n\n", "\n", ". ", " ", ""]
     )
     chunks = splitter.split_documents(docs)
     print(f"Split into {len(chunks)} chunks")

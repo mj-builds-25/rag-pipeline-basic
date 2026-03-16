@@ -71,14 +71,9 @@ def format_docs(docs) -> str:
     The prompt expects a single string. This bridges that gap.
     We also add a separator so the LLM can tell chunks apart.
     """
-    return "
-
----
-
-".join(
-        f"[Source: {doc.metadata.get('source', 'unknown')}]
-{doc.page_content}"
-        for doc in docs
+    return "\n\n---\n\n".join(
+    f"[Source: {doc.metadata.get('source', 'unknown')}]\n{doc.page_content}"
+    for doc in docs
     )
 
 
@@ -131,8 +126,7 @@ def ask(question: str, chain, retriever) -> dict:
         "sources": [
             {
                 "source": doc.metadata.get("source", "unknown"),
-                "preview": doc.page_content[:120].replace("
-", " ")
+                "preview": doc.page_content[:120].replace("\n", " ")
             }
             for doc in source_docs
         ]
@@ -141,13 +135,11 @@ def ask(question: str, chain, retriever) -> dict:
 
 def main():
     """Interactive query loop."""
-    print("
-=== RAG Pipeline — Query Mode ===")
+    print("\n=== RAG Pipeline — Query Mode ===")
     print("Building retriever and chain...", end=" ", flush=True)
     retriever = build_retriever()
     chain     = build_rag_chain(retriever)
-    print("Ready!
-")
+    print("Ready!\n")
 
     while True:
         question = input("Your question (or 'quit'): ").strip()
@@ -157,10 +149,8 @@ def main():
             continue
 
         result = ask(question, chain, retriever)
-
-        print(f"
-Answer:
-{result['answer']}")
+        
+        print(f"\nAnswer:\n{result['answer']}")
         print(f"Retrieved from:")
         for s in result["sources"]:
             print(f"   [{s['source']}] {s['preview']}...")

@@ -3,7 +3,7 @@ import sys
 sys.path.insert(0, ".")
 
 from langchain_qdrant import QdrantVectorStore
-from langchain_groq import ChatGroq
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnablePassthrough
@@ -72,10 +72,11 @@ def format_docs(docs) -> str:
 
 
 def build_rag_chain(retriever):
-    llm = ChatGroq(
-        model=config.LLM_MODEL,
-        api_key=config.GROQ_API_KEY,
-        temperature=0,
+    llm = ChatOpenAI(
+    model=config.LLM_MODEL,
+    api_key=config.GROQ_API_KEY,
+    base_url="https://api.groq.com/openai/v1",
+    temperature=0,
     )
 
     prompt = build_prompt()

@@ -1,4 +1,3 @@
-# src/query.py
 import sys
 sys.path.insert(0, ".")
 
